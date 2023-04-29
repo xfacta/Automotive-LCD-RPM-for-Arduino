@@ -1,13 +1,13 @@
 # Automotive LCD RPM for Arduino
  Digital and bargraph display of RPM
 
-RPM meter
+Tachometer
 Large text and
 Bar style graphical meter
 Reversed direction of bar
 Dim on parker lights
 Button to reset peak RPM
-Outputs RPM as PWM for shift light
+Outputs RPM as PWM for external shift light (on another arduino)
 Uses pulseIn , no interupts
 Offloaded sounds to external Leonardo Tiny
 
@@ -30,3 +30,4 @@ Calibration_Mode = true or false for display of some raw data
 
 Kludge_Factor is a way of adjusting timing since all Arduino crystals will be slightly different
 
+The shift light function is offloaded to another Arduino via PWM so the other Arduino can also use the LED strip for other functions such as warning lights
