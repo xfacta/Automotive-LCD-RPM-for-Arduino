@@ -48,4 +48,4 @@ Currently there is only a crude long-press detection using delay, and some debou
 The shift light function is offloaded to another Arduino via PWM so the other Arduino can also use the LED strip for other functions such as warning lights.
 Only the `RPM_yellowline` to `RPM_redline range` is output, lower RPM values result in PWM = 0
 
-The sounds are offloaded to a Leonardo Tiny to avoid delays and allow one Tiny and speaker to srvice multiple other functions such as Speedo and Fuel/Temperature/OilPressure gauge.
+The sounds are offloaded to a Leonardo Tiny to avoid delays and allow one Tiny and speaker to srvice multiple other functions such as Speedo and Fuel/Temperature/OilPressure gauge warning sounds.
