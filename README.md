@@ -1,4 +1,4 @@
-# Automotive LCD RPM for Arduino
+# Automotive LCD Tachometer for Arduino
 ## Digital and bargraph display of RPM
 
 - Tachometer
