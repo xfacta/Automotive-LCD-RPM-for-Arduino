@@ -7,7 +7,8 @@
 - Uses pulseIn , no interupts
 - Large text and
 - Bar style graphical meter
-- Reversed direction of bar
+- Reversed direction of bar to pair with speedometer
+- Rounding of RPM to 10's or 100's depending on range
 - Dim on "lights" input
 - Button to reset peak RPM
 - Outputs RPM as PWM for external shift light (on another arduino)
