@@ -8,7 +8,7 @@
 - Large text and
 - Bar style graphical meter
 - Reversed direction of bar
-- Dim on parker lights
+- Dim on "lights" input
 - Button to reset peak RPM
 - Outputs RPM as PWM for external shift light (on another arduino)
 - Offloaded sounds to external Leonardo Tiny
@@ -23,6 +23,10 @@ UTFT Libraries and some associated font files
 Copyright (C)2015 Rinky-Dink Electronics, Henning Karlsen. All right reserved
 
 web: http://www.RinkyDinkElectronics.com/
+
+This is the ILI9481 display used
+
+https://www.altronics.com.au/p/z6527a-3.5-lcd-tft-arduino-mega2560-shield/
 
 
 ### It is required to check and adjust
@@ -49,3 +53,5 @@ The shift light function is offloaded to another Arduino via PWM so the other Ar
 Only the `RPM_yellowline` to `RPM_redline range` is output, lower RPM values result in PWM = 0
 
 The sounds are offloaded to a Leonardo Tiny to avoid delays and allow one Tiny and speaker to srvice multiple other functions such as Speedo and Fuel/Temperature/OilPressure gauge warning sounds.
+
+The dimming function works by changing to using light grey and dark grey instead of white and colours, since there is no backlight control on the LCD panel I used.
