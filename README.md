@@ -1,7 +1,7 @@
 # Automotive LCD Tachometer for Arduino
 ## Digital and bargraph display of RPM
 
-- AT Mega2560 and 3.5" LCD display
+- AT Mega2560 and 3.5" 320x480 LCD display
 - Tachometer
 - Peak RPM
 - Uses pulseIn , no interupts
