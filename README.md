@@ -1,6 +1,7 @@
 # Automotive LCD Tachometer for Arduino
 ## Digital and bargraph display of RPM
 
+- AT Mega2560 and 3.5" LCD display
 - Tachometer
 - Peak RPM
 - Uses pulseIn , no interupts
@@ -11,6 +12,10 @@
 - Button to reset peak RPM
 - Outputs RPM as PWM for external shift light (on another arduino)
 - Offloaded sounds to external Leonardo Tiny
+
+
+![Tacho](https://user-images.githubusercontent.com/41600026/235329704-6a54a9bf-f901-4835-ae28-00de2161cee2.PNG)
+
 
 ### Uses 
 UTFT Libraries and some associated font files
