@@ -207,12 +207,13 @@ void setup() {
   myGLCD.printNumI(RPM_redline, RPM_x, RPM_y, 4 , '0');
   delay(2000);
   
-  // Set calibration mode from button input
-  if (digitalRead(Button_Pin) == LOW)
-  {
-    // wait and see if the button input is still low
-    delay(100);
-    if (digitalRead(Button_Pin) == LOW) Calibration_Mode = true;
+  // Set calibration mode from long-press button input
+  // during startup
+  if (digitalRead(Button_Pin) == LOW) {
+    while (debounce()) {
+      // just wait until button released
+    }
+    Calibration_Mode = true;
   }
   
   // cant have both demo mode and calibration mode at once
@@ -236,11 +237,8 @@ void loop() {
   // Reset peak RPM by button press
   // =======================================================
 
-  if (digitalRead(Button_Pin) == LOW)
-  {
-    // wait and see if the button input is still low
-    delay(100);
-    if (digitalRead(Button_Pin) == LOW) peak_RPM = 0;
+  if (digitalRead(Button_Pin) == LOW) {
+    if (debounce()) peak_RPM = 0;
   }
 
 
@@ -407,6 +405,11 @@ void loop() {
 // ##################################################################################################################################################
 
 
+// Reusable functions
+
+
+// =======================================================
+
 // Function to return a 16 bit rainbow colour
 
 unsigned int rainbow(byte value)
@@ -442,6 +445,19 @@ unsigned int rainbow(byte value)
   }
   return (red << 11) + (green << 5) + blue;
 }
+
+
+// =======================================================
+
+// Button switch debounce
+
+bool debounce() {
+  Button_State = 0;
+  Button_State = (Button_State << 1) | digitalRead(Button_Pin) | 0xfe00;
+  return (Button_State == 0xff00);
+}  // end bool debounce
+
+// =======================================================
 
 
 // ##################################################################################################################################################
