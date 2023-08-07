@@ -234,7 +234,7 @@ void setup() {
   }
 
   // cant have both demo mode and calibration mode at once
-  if (Calibration_Mode == true) Demo_Mode = false;
+  if (Calibration_Mode) Demo_Mode = false;
 
 
 }  // End void setup
@@ -267,7 +267,7 @@ void loop() {
 
   if (millis() > startup_time) {
     // Dim mode when headlights are on
-    if (digitalRead(Low_Beam_Pin) == HIGH && dim_mode == false) {
+    if (digitalRead(Low_Beam_Pin) == HIGH && !dim_mode) {
       dim_mode = true;
       text_colour1 = VGA_SILVER;
       text_colour2 = VGA_GRAY;
@@ -275,7 +275,7 @@ void loop() {
     }
 
     // Normal colours when headlights are off
-    if (digitalRead(Low_Beam_Pin) == LOW && dim_mode == true) {
+    if (digitalRead(Low_Beam_Pin) == LOW && dim_mode) {
       dim_mode = false;
       text_colour1 = VGA_WHITE;
       text_colour2 = VGA_SILVER;
@@ -289,7 +289,7 @@ void loop() {
   // =======================================================
 
 
-  if (Demo_Mode == false) {
+  if (!Demo_Mode) {
     hightime = pulseIn(RPM_Input_Pin, HIGH, pulsein_timeout);
     lowtime = pulseIn(RPM_Input_Pin, LOW, pulsein_timeout);
     period = hightime + lowtime;
@@ -301,7 +301,7 @@ void loop() {
     }
     RPM = round(freq / (float)cylinders * 120.0 * Kludge_Factor);
 
-    if (Calibration_Mode == true) {
+    if (Calibration_Mode) {
       myGLCD.setColor(VGA_GRAY);
       myGLCD.setBackColor(VGA_BLACK);
       myGLCD.setFont(font0);
@@ -381,7 +381,7 @@ void loop() {
     x2 = linearBarX - ((blocks + 1) * seg_size) + seg_gap;  // ending X coord allowing for gap
 
     if (new_val > 0 && blocks < new_val) {
-      if (dim_mode == false) {
+      if (!dim_mode) {
         // Choose colour from scheme using the Rainbow function
         // uncomment one line
         //block_colour = VGA_RED; // Fixed colour
