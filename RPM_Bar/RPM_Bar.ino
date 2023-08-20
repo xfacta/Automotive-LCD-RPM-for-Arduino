@@ -35,13 +35,13 @@ int minimum_RPM = 500;
 // Testing = true gives random RPM values
 // Calibration = true displays some calculated values
 bool Calibration_Mode = false;
-bool Demo_Mode = true;
-//bool Debug_Mode = false;
+bool Demo_Mode = false;
+bool Debug_Mode = false;
 
 // Kludge factor to allow for differing
 // crystals and similar inconsistancies
 // This gets applied to Frequency in the RPM calcuation
-float Kludge_Factor = 1.0;
+float Kludge_Factor = 0.994;
 
 
 //========================================================================
@@ -346,9 +346,9 @@ void loop() {
 
   //round RPM to nearest 100's or 10's
   if (RPM > RPM_redline / 2) {
-    RPM = round((float)RPM / 100.0) * 100;
+    RPM = round((RPM + 50) / 100) * 100;
   } else {
-    RPM = round((float)RPM / 10.0) * 10;
+    RPM = round((RPM + 5) / 10) * 10;
   }
 
   myGLCD.setFont(font7L);
