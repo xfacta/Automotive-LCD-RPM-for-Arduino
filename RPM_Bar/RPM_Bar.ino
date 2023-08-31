@@ -26,6 +26,13 @@ int RPM_yellowline = 6000;
 int cylinders = 4;
 int minimum_RPM = 500;
 
+const bool Digitial_Input_Active = LOW;  // set whether digitial inputs are Low or High for active
+
+// Kludge factor to allow for differing
+// crystals and similar inconsistancies
+// This gets applied to Frequency in the RPM calcuation
+float Kludge_Factor = 0.994;
+
 //========================================================================
 
 
@@ -37,12 +44,6 @@ int minimum_RPM = 500;
 bool Calibration_Mode = false;
 bool Demo_Mode = false;
 bool Debug_Mode = false;
-
-// Kludge factor to allow for differing
-// crystals and similar inconsistancies
-// This gets applied to Frequency in the RPM calcuation
-float Kludge_Factor = 0.994;
-
 
 //========================================================================
 
@@ -171,8 +172,8 @@ void setup() {
 
   // Digital inputs
   pinMode(Button_Pin, INPUT_PULLUP);
-  pinMode(Low_Beam_Pin, INPUT);
-  pinMode(RPM_Input_Pin, INPUT);
+  pinMode(Low_Beam_Pin, INPUT_PULLUP);
+  pinMode(RPM_Input_Pin, INPUT_PULLUP);
 
   // Analog inputs
   //none
@@ -219,11 +220,11 @@ void setup() {
 
   // Set calibration mode from long-press button input
   // during startup
-  if (digitalRead(Button_Pin) == LOW) {
+  if (digitalRead(Button_Pin) == Digitial_Input_Active) {
     // Allow time for the button pin to settle
     // assumes some electronic/external debounce
     delay(10);
-    while (digitalRead(Button_Pin) == LOW) {
+    while (digitalRead(Button_Pin) == Digitial_Input_Active) {
       // just wait until button released
       myGLCD.setColor(VGA_WHITE);
       myGLCD.setBackColor(VGA_BLACK);
@@ -253,11 +254,11 @@ void loop() {
   // Reset peak RPM by button press
   // =======================================================
 
-  if (digitalRead(Button_Pin) == LOW) {
+  if (digitalRead(Button_Pin) == Digitial_Input_Active) {
     // Allow time for the button pin to settle
     // assumes some electronic/external debounce
     delay(10);
-    if (digitalRead(Button_Pin) == LOW) peak_RPM = 0;
+    if (digitalRead(Button_Pin) == Digitial_Input_Active) peak_RPM = 0;
   }
 
 
@@ -267,7 +268,7 @@ void loop() {
 
   if (millis() > startup_time) {
     // Dim mode when headlights are on
-    if (digitalRead(Low_Beam_Pin) == HIGH && !dim_mode) {
+    if (digitalRead(Low_Beam_Pin) == Digitial_Input_Active && !dim_mode) {
       dim_mode = true;
       text_colour1 = VGA_SILVER;
       text_colour2 = VGA_GRAY;
@@ -275,7 +276,7 @@ void loop() {
     }
 
     // Normal colours when headlights are off
-    if (digitalRead(Low_Beam_Pin) == LOW && dim_mode) {
+    if (digitalRead(Low_Beam_Pin) == !Digitial_Input_Active && dim_mode) {
       dim_mode = false;
       text_colour1 = VGA_WHITE;
       text_colour2 = VGA_SILVER;
