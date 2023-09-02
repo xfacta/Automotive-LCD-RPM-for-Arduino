@@ -1,46 +1,53 @@
-// RPM meter
-// Large text and
-// Bar style graphical meter
-// Reversed direction of bar
-// Dim on parker lights
-// Outputs RPM as PWM for shift light
-// Uses pulseIn , no interupts
-// Offloaded sounds to external Leonardo Tiny
+/*
+  RPM meter
+  Large text and
+  Bar style graphical meter
+  Reversed direction of bar
+  Dim on parker lights
+  Outputs RPM as PWM for shift light
+  Uses pulseIn , no interupts
+  Offloaded sounds to external Leonardo Tiny
+*/
 
 
-
-// UTFT Libraries
-// Copyright (C)2015 Rinky-Dink Electronics, Henning Karlsen. All right reserved
-// web: http://www.RinkyDinkElectronics.com/
-
+/*
+  UTFT Libraries and fonts
+  Copyright (C)2015 Rinky-Dink Electronics, Henning Karlsen. All right reserved
+  web: http://www.RinkyDinkElectronics.com/
+*/
 
 
 #define Version "RPM Bar V16"
 
 
-
+//========================================================================
 //========================== Set These Manually ==========================
+//========================================================================
 
 int RPM_redline = 8000;
 int RPM_yellowline = 6000;
 int cylinders = 4;
 int minimum_RPM = 500;
 
-const bool Digitial_Input_Active = LOW;  // set whether digitial inputs are Low or High for active
+// Set whether digitial inputs are active low or active high
+// example: active low = pulled to ground for a valid button press
+const bool Digitial_Input_Active = LOW;
 
 // Kludge factor to allow for differing
 // crystals and similar inconsistancies
-// This gets applied to Frequency in the RPM calcuation
+// this is applied to Frequency in the RPM calcuation
 float Kludge_Factor = 0.994;
 
 //========================================================================
 
 
 
-//========================== Calibration mode ===========================
+//========================================================================
+//========================== Calibration mode ============================
+//========================================================================
 
-// Testing = true gives random RPM values
-// Calibration = true displays some calculated values
+// Demo = true gives random RPM values
+// Calibration = true displays some calculated and raw values
 bool Calibration_Mode = false;
 bool Demo_Mode = false;
 bool Debug_Mode = false;
@@ -58,11 +65,13 @@ bool Debug_Mode = false;
 UTFT myGLCD(ILI9481, 38, 39, 40, 41);
 UTFT_Geometry geo(&myGLCD);
 
-// My display needed the ILI8491 driver changed
-// to flip the display
-// LCD_Write_DATA(0x4A); <- correct
-// LCD_Write_DATA(0x8A); <- was
-// Possible values: 0x8A 0x4A 0x2A 0x1A
+/*
+  My display needed the ILI8491 driver changed
+  to flip the display
+  LCD_Write_DATA(0x4A); <- correct
+  LCD_Write_DATA(0x8A); <- was
+  Possible values: 0x8A 0x4A 0x2A 0x1A
+*/
 
 // Declare which fonts we will be using
 //extern uint8_t SmallFont[];
@@ -107,23 +116,23 @@ int startup_time = 8000;           // 8 seconds
 #define High_Beam_Pin 3     // High beam digital input pin
 #define Pbrake_Input_Pin 4  // Park brake input pin
 #define VSS_Input_Pin 5     // Speed frequency input pin
-#define RPM_Input_Pin 6     // RPM frequency input pin
-#define RPM_PWM_In_Pin 6    // Input PWM signal representing RPM
+#define RPM_Input_Pin 6     // RPM frequency INPUT pin
 #define Button_Pin 7        // Button momentary input
+#define RPM_PWM_In_Pin 8    // Input PWM signal representing RPM
 
 // Pin definitions for analog inputs
-#define Temp_Pin A0          // Temperature analog input pin - not used with OneWire sensor
+#define Temp_Pin A0          // Temperature analog input pin - OneWire sensor on pin 14
 #define Fuel_Pin A1          // Fuel level analog input pin
 #define Batt_Volt_Pin A2     // Voltage analog input pin
 #define Alternator_Pin A3    // Alternator indicator analog input pin
 #define Head_Light_Input A4  // Headlights via resistor ladder
 
 // Pin definitions for outputs
-#define RPM_PWM_Out_Pin 10  // Output of RPM as a PWM signal for shift light
-#define LED_Pin 10          // NeoPixel LED pin
-#define Warning_Pin 11      // Link to external Leonardo for general warning sounds
-#define OP_Warning_Pin 12   // Link to external Leonardo for oil pressure warning sound
-#define Relay_Pin 13        // Relay for fan control
+#define RPM_PWM_Out_Pin 9  // Output of RPM as a PWM signal for shift light
+#define LED_Pin 10         // NeoPixel LED pin
+#define Warning_Pin 11     // Link to external Leonardo for general warning sounds
+#define OP_Warning_Pin 12  // Link to external Leonardo for oil pressure warning sound
+#define Relay_Pin 13       // Relay for fan control
 
 
 // RPM variables
@@ -159,11 +168,6 @@ void setup() {
   while (--count)
     seed = (seed << 1) | (analogRead(A6) & 1);
   randomSeed(seed);
-
-
-  // Set any pins that might be used
-  // after testing take out any _PULLUP
-  // and rely on external interface electronics
 
   // Outputs
   pinMode(RPM_PWM_Out_Pin, OUTPUT);
@@ -216,13 +220,13 @@ void setup() {
   myGLCD.setColor(VGA_RED);
   myGLCD.setBackColor(VGA_BLACK);
   myGLCD.printNumI(RPM_redline, RPM_x, RPM_y, 4, '0');
-  delay(2000);
+  delay(1000);
 
   // Set calibration mode from long-press button input
   // during startup
   if (digitalRead(Button_Pin) == Digitial_Input_Active) {
     // Allow time for the button pin to settle
-    // assumes some electronic/external debounce
+    // this assumes some electronic/external debounce
     delay(10);
     while (digitalRead(Button_Pin) == Digitial_Input_Active) {
       // just wait until button released
@@ -256,7 +260,7 @@ void loop() {
 
   if (digitalRead(Button_Pin) == Digitial_Input_Active) {
     // Allow time for the button pin to settle
-    // assumes some electronic/external debounce
+    // this assumes some electronic/external debounce
     delay(10);
     if (digitalRead(Button_Pin) == Digitial_Input_Active) peak_RPM = 0;
   }
@@ -289,7 +293,6 @@ void loop() {
   // Get the RPM and display RPM text and graph
   // =======================================================
 
-
   if (!Demo_Mode) {
     hightime = pulseIn(RPM_Input_Pin, HIGH, pulsein_timeout);
     lowtime = pulseIn(RPM_Input_Pin, LOW, pulsein_timeout);
@@ -311,6 +314,7 @@ void loop() {
       myGLCD.printNumI(RPM, 0, 260, 4);
     }
   } else {
+    // Demo mode, invent values
     RPM = random(600, 8200);
     //RPM = 2000;
   }
