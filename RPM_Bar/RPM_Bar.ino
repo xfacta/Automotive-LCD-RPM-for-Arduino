@@ -125,7 +125,6 @@ int startup_time = 8000;           // 8 seconds
 #define Fuel_Pin A1          // Fuel level analog input pin
 #define Batt_Volt_Pin A2     // Voltage analog input pin
 #define Alternator_Pin A3    // Alternator indicator analog input pin
-#define Head_Light_Input A4  // Headlights via resistor ladder
 
 // Pin definitions for outputs
 #define RPM_PWM_Out_Pin 9  // Output of RPM as a PWM signal for shift light
