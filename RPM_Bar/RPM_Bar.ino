@@ -121,10 +121,10 @@ int startup_time = 8000;           // 8 seconds
 #define RPM_PWM_In_Pin 8    // Input PWM signal representing RPM
 
 // Pin definitions for analog inputs
-#define Temp_Pin A0          // Temperature analog input pin - OneWire sensor on pin 14
-#define Fuel_Pin A1          // Fuel level analog input pin
-#define Batt_Volt_Pin A2     // Voltage analog input pin
-#define Alternator_Pin A3    // Alternator indicator analog input pin
+#define Temp_Pin A0        // Temperature analog input pin - OneWire sensor on pin 14
+#define Fuel_Pin A1        // Fuel level analog input pin
+#define Batt_Volt_Pin A2   // Voltage analog input pin
+#define Alternator_Pin A3  // Alternator indicator analog input pin
 
 // Pin definitions for outputs
 #define RPM_PWM_Out_Pin 9  // Output of RPM as a PWM signal for shift light
@@ -174,9 +174,11 @@ void setup() {
   //digitalWrite(Warning_Pin, HIGH);
 
   // Digital inputs
+  // remove input_pullup's after testing
+  // since pullups are handled by external hardware
   pinMode(Button_Pin, INPUT_PULLUP);
-  pinMode(Low_Beam_Pin, INPUT_PULLUP);
-  pinMode(RPM_Input_Pin, INPUT_PULLUP);
+  pinMode(Low_Beam_Pin, INPUT);
+  pinMode(RPM_Input_Pin, INPUT);
 
   // Analog inputs
   //none
@@ -302,7 +304,7 @@ void loop() {
     } else {
       freq = 0;
     }
-    RPM = round(freq / (float)cylinders * 120.0 );
+    RPM = round(freq / (float)cylinders * 120.0);
 
     if (Calibration_Mode) {
       myGLCD.setColor(VGA_GRAY);
