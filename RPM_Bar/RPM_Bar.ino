@@ -49,7 +49,7 @@ float Kludge_Factor = 0.994;
 // Demo = true gives random RPM values
 // Calibration = true displays some calculated and raw values
 bool Calibration_Mode = false;
-bool Demo_Mode = false;
+bool Demo_Mode = true;
 bool Debug_Mode = false;
 
 //========================================================================
