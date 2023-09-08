@@ -61,6 +61,7 @@ bool Debug_Mode = false;
 #include <UTFT.h>
 // needed for drawing triangles
 #include <UTFT_Geometry.h>
+#define VGA_ORANGE 0xFD20      /* 255, 165,   0 */
 
 UTFT myGLCD(ILI9481, 38, 39, 40, 41);
 UTFT_Geometry geo(&myGLCD);
