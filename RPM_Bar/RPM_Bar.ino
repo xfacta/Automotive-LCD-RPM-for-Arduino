@@ -4,7 +4,7 @@
   Bar style graphical meter
   Reversed direction of bar
   Dim on parker lights
-  Outputs RPM as PWM for shift light
+  Outputs RPM via serial2 for shift light
   Uses pulseIn , no interupts
   Offloaded sounds to external Leonardo Tiny
 */
@@ -47,6 +47,10 @@ float Kludge_Factor = 0.994;
 const float vcc_ref = 4.92;      // measure the 5 volts DC and set it here
 const float R1      = 1200.0;    // measure and set the voltage divider values
 const float R2      = 3300.0;    // for accurate voltage measurements
+
+// The range of RPM on the neopixel strip is dictated by the output from the RPM module
+// set the length of the NeoPixel shiftlight strip
+int LED_Count = 8;
 
 //========================================================================
 
@@ -152,7 +156,7 @@ const float Input_Multiplier = vcc_ref / 1024.0 / (R2 / (R1 + R2));
 #define VSS_Input_Pin    5    // Speed frequency input pin
 #define RPM_Input_Pin    6    // RPM frequency INPUT pin
 #define Button_Pin       7    // Button momentary input
-#define RPM_PWM_In_Pin   8    // Input PWM signal representing RPM
+// #define RPM_Serial_In_Pin 8    // Input PWM signal representing RPM - Serial2 17(RX), 16(TX)
 
 // Pin definitions for analog inputs
 #define Temp_Pin       A0    // Temperature analog input pin - OneWire sensor on pin 14
@@ -161,18 +165,19 @@ const float Input_Multiplier = vcc_ref / 1024.0 / (R2 / (R1 + R2));
 #define Alternator_Pin A3    // Alternator indicator analog input pin
 
 // Pin definitions for outputs
-#define RPM_PWM_Out_Pin 9     // Output of RPM as a PWM signal for shift light
-#define LED_Pin         10    // NeoPixel LED pin
-#define Warning_Pin     11    // Link to external Leonardo for general warning sounds
-#define OP_Warning_Pin  12    // Link to external Leonardo for oil pressure warning sound
-#define Relay_Pin       13    // Relay for fan control
+// #define RPM_Serial_Out_Pin 9     // Output of RPM as a PWM signal for shift light - Serial2 17(RX), 16(TX)
+#define LED_Pin        10    // NeoPixel LED pin
+#define Warning_Pin    11    // Link to external Leonardo for general warning sounds
+#define OP_Warning_Pin 12    // Link to external Leonardo for oil pressure warning sound
+#define Relay_Pin      13    // Relay for fan control
 
 
 // RPM variables
-int           RPM, peak_RPM, last_RPM, len, RPM_PWM;
+int           RPM, peak_RPM, last_RPM;
 unsigned long hightime, lowtime, pulsein_timeout;
 float         freq, period;
 int           maximum_RPM = RPM_redline * 1.2;
+int           RPM_LED_Pos;
 
 // Position on display
 int RPM_x = 50, RPM_y = 75;
@@ -196,6 +201,9 @@ const int meterMin = 0, meterMax = maximum_RPM;    // bar scale
 void setup()
     {
 
+    // Start a serial port for sending RPM LED shift light position
+    // Serial2 17(RX), 16(TX)
+    Serial2.begin(57600);
 
     // Improved randomness for testing
     // Choose an unused analog pin
@@ -205,7 +213,7 @@ void setup()
     randomSeed(seed);
 
     // Outputs
-    pinMode(RPM_PWM_Out_Pin, OUTPUT);
+    //pinMode(RPM_Serial_Out_Pin, OUTPUT);
     pinMode(Warning_Pin, OUTPUT);
     digitalWrite(Warning_Pin, !Valid_Warning);
 
@@ -387,8 +395,16 @@ void loop()
     // Output the RPM as a PWM signal for another Arduino
     // =======================================================
 
-    RPM_PWM = map(RPM, RPM_yellowline, RPM_redline, 0, 255);
-    analogWrite(RPM_PWM_Out_Pin, RPM_PWM);
+    RPM_LED_Pos = map(RPM, RPM_yellowline, RPM_redline, 0, LED_Count);
+    RPM_LED_Pos = constrain(RPM_LED_Pos, 0, LED_Count);
+    Serial2.write(RPM_LED_Pos);
+    if (Debug_Mode)
+        {
+        myGLCD.setFont(font7F);
+        myGLCD.setColor(VGA_YELLOW);
+        myGLCD.setBackColor(VGA_BLACK);
+        myGLCD.printNumI(RPM_LED_Pos, 20, peak_RPM_y, 2, ' ');
+        }
 
 
     // =======================================================
