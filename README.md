@@ -11,8 +11,8 @@
 - Rounding of RPM to 10's or 100's depending on range
 - Dim on "lights" input
 - Button to reset peak RPM
-- Outputs RPM as PWM for external shift light (on another arduino)
-- Offloaded sounds to external Leonardo Tiny
+- Outputs shift light data via serial for external shift light (on another arduino)
+- Offloaded sounds to external Leonardo Tiny - currently the Tacho doesnt emit any warning sounds
 
 
 ![Tacho](https://user-images.githubusercontent.com/41600026/235329704-6a54a9bf-f901-4835-ae28-00de2161cee2.PNG)
@@ -50,9 +50,9 @@ Pressing the button at startup also enters calibration mode.
 Pressing the button during normal operation resets the Peak RPM value.
 Currently there is only a crude long-press detection using delay, and some debouncing in hardware is assumed.
 
-The shift light function is offloaded to another Arduino via PWM so the other Arduino can also use the LED strip for other functions such as warning lights.
-Only the `RPM_yellowline` to `RPM_redline range` is output, lower RPM values result in PWM = 0
+The shift light function is offloaded to another Arduino via serial so the other Arduino can also use the LED strip for other functions such as warning lights.
+Only the `RPM_yellowline` to `RPM_redline range` is output, lower RPM values are ignored.
 
-The sounds are offloaded to a Leonardo Tiny to avoid delays and allow one Tiny and speaker to srvice multiple other functions such as Speedo and Fuel/Temperature/OilPressure gauge warning sounds.
+The sounds are offloaded to a Leonardo Tiny to avoid delays and allow one Tiny and speaker to service multiple other functions such as Speedo and Fuel/Temperature/OilPressure gauge warning sounds.
 
 The dimming function works by changing to using light grey and dark grey instead of white and colours, since there is no backlight control on the LCD panel I used.
