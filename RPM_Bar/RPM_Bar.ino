@@ -31,7 +31,7 @@
 
 
 
-#define Version "RPM Bar V17"
+#define Version "RPM Bar V18"
 
 
 
@@ -76,7 +76,7 @@ int LED_Count = 8;
 // Demo = true gives random RPM values
 // Calibration = true displays some calculated and raw values
 bool Calibration_Mode = false;
-bool Demo_Mode        = true;
+bool Demo_Mode        = false;
 bool Debug_Mode       = false;
 
 //========================================================================
@@ -187,7 +187,7 @@ const int Relay_Pin      = 13;    // Relay for fan control
 
 // RPM variables
 int           RPM, peak_RPM, last_RPM;
-unsigned long hightime, lowtime, pulsein_timeout;
+unsigned long hightime, lowtime, pulsein_timeout, period_min;
 float         freq, period;
 int           maximum_RPM = RPM_redline * 1.2;
 int           RPM_LED_Pos;
@@ -242,9 +242,17 @@ void setup()
 
     // =======================================================
     // Maximum time for pulseIn to wait in microseconds
-    // Use the period of the lowest expected frequency, and double it
-    // based on cylinders and minimum_RPM
+    // Use the period of the lowest expected frequency
+    // based on cylinders and minimum_RPM, and double it
     pulsein_timeout = 1000000.0 / ((float)minimum_RPM * (float)cylinders / 120.0) * 2.0;
+    // =======================================================
+
+    // =======================================================
+    // Calculate the minimum period in microseconds
+    // values beyond this would be considered noise or an error
+    // this helps to prevent divide by zero errors
+    // based on cylinders and maximum_RPM, and halve it
+    period_min = 1000000.0 / ((float)maximum_RPM * (float)cylinders / 120.0) / 2.0;
     // =======================================================
 
     // =======================================================
@@ -373,7 +381,7 @@ void loop()
         lowtime  = pulseIn(RPM_Input_Pin, LOW, pulsein_timeout);
         period   = hightime + lowtime;
         // prevent overflows or divide by zero
-        if (period > 1000)
+        if (period > period_min)
             {
             freq = 1000000.0 / (float)period * Kludge_Factor;
             }
