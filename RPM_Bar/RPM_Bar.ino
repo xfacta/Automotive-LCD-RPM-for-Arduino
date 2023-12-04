@@ -53,7 +53,6 @@ const bool Valid_Warning = LOW;
 
 // Kludge factor to allow for differing
 // crystals and similar inconsistancies
-// this is applied to Frequency in the RPM calcuation
 float Kludge_Factor = 0.994;
 
 // Set these to ensure correct voltage readings of analog inputs
@@ -74,10 +73,7 @@ int LED_Count = 8;
 //========================================================================
 
 // Demo = true gives random RPM values
-// Calibration = true displays some calculated and raw values
-bool Calibration_Mode = false;
-bool Demo_Mode        = false;
-bool Debug_Mode       = false;
+bool Demo_Mode = false;
 
 //========================================================================
 
@@ -184,11 +180,10 @@ const int Warning_Pin    = 11;    // Link to external Leonardo for general warni
 const int OP_Warning_Pin = 12;    // Link to external Leonardo for oil pressure warning sound
 const int Relay_Pin      = 13;    // Relay for fan control
 
-
 // RPM variables
 int           RPM, peak_RPM, last_RPM;
 unsigned long hightime, lowtime, pulsein_timeout, period_min;
-float         freq, period;
+float         freq, period, RPM_constant;
 int           maximum_RPM = RPM_redline * 1.2;
 int           RPM_LED_Pos;
 
@@ -256,6 +251,16 @@ void setup()
     // =======================================================
 
     // =======================================================
+    // Calculate this constant up front to avoid
+    // doing divides every loop
+    RPM_constant = 120000000 / (float)cylinders * Kludge_Factor;
+
+    //freq = 1000000.0 / (float)period;
+    //RPM = round(freq / (float)cylinders * 120.0);
+    //RPM = round(1000000.0 / (float)period / (float)cylinders * 120.0)
+    // =======================================================
+
+    // =======================================================
     // set some more values for the bar graph
     // these only need to be calculated once
     num_segs   = int(0.5 + (float)(meterMax - meterMin) / (float)seg_value);    // calculate number of segments
@@ -291,30 +296,6 @@ void setup()
     myGLCD.setBackColor(VGA_BLACK);
     myGLCD.printNumI(RPM_redline, RPM_x, RPM_y, 4, '0');
     delay(1000);
-
-    // =======================================================
-    // Set calibration mode from long-press button input
-    // during startup
-    if (digitalRead(Button_Pin) == Digitial_Input_Active)
-        {
-        // Allow time for the button pin to settle
-        // this assumes some electronic/external debounce
-        delay(10);
-        while (digitalRead(Button_Pin) == Digitial_Input_Active)
-            {
-            // just wait until button released
-            myGLCD.setColor(VGA_WHITE);
-            myGLCD.setBackColor(VGA_BLACK);
-            myGLCD.setFont(font0);
-            myGLCD.print((char *)"CAL", LEFT, 80);
-            Calibration_Mode = true;
-            }
-        }
-    // =======================================================
-
-    // cant have both demo mode and calibration mode at once
-    if (Calibration_Mode)
-        Demo_Mode = false;
 
 
     }    // End void setup
@@ -380,25 +361,15 @@ void loop()
         hightime = pulseIn(RPM_Input_Pin, HIGH, pulsein_timeout);
         lowtime  = pulseIn(RPM_Input_Pin, LOW, pulsein_timeout);
         period   = hightime + lowtime;
+
         // prevent overflows or divide by zero
         if (period > period_min)
             {
-            freq = 1000000.0 / (float)period * Kludge_Factor;
+            RPM = round(RPM_constant / (float)period);
             }
         else
             {
-            freq = 0;
-            }
-        RPM = round(freq / (float)cylinders * 120.0);
-
-        if (Calibration_Mode)
-            {
-            myGLCD.setColor(VGA_GRAY);
-            myGLCD.setBackColor(VGA_BLACK);
-            myGLCD.setFont(font0);
-            myGLCD.printNumI(period, 0, 220, 4);
-            myGLCD.printNumI(freq, 0, 240, 4);
-            myGLCD.printNumI(RPM, 0, 260, 4);
+            RPM = 0;
             }
         }
     else
@@ -419,13 +390,6 @@ void loop()
     RPM_LED_Pos = map(RPM, RPM_yellowline, RPM_redline, 0, LED_Count);
     RPM_LED_Pos = constrain(RPM_LED_Pos, 0, LED_Count);
     Serial2.write(RPM_LED_Pos);
-    if (Debug_Mode)
-        {
-        myGLCD.setFont(font7F);
-        myGLCD.setColor(VGA_YELLOW);
-        myGLCD.setBackColor(VGA_BLACK);
-        myGLCD.printNumI(RPM_LED_Pos, 20, peak_RPM_y, 2, ' ');
-        }
 
 
     // =======================================================
@@ -444,10 +408,10 @@ void loop()
 
 
     // =======================================================
-    // Print RPM value
+    // Display RPM value
     // =======================================================
 
-    //round RPM to nearest 100's or 10's
+    // Round RPM to nearest 100's or 10's
     if (RPM > RPM_redline / 2)
         {
         RPM = round((RPM + 50) / 100) * 100;
