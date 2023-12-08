@@ -69,8 +69,9 @@ int LED_Count = 8;
 
 
 //========================================================================
-//-------------------------- Calibration mode ----------------------------
+//------------------------------ Demo mode -------------------------------
 //========================================================================
+// Removed calibration mode, it shouldnt be needed
 
 // Demo = true gives random RPM values
 bool Demo_Mode = false;
@@ -183,8 +184,9 @@ const int Relay_Pin      = 13;    // Relay for fan control
 // RPM variables
 int           RPM, peak_RPM, last_RPM;
 unsigned long hightime, lowtime, pulsein_timeout, period_min;
-float         freq, period, RPM_constant;
+float         freq, period, RPM_f, RPM_constant;
 int           maximum_RPM = RPM_redline * 1.2;
+int           low_RPM     = RPM_redline / 3;
 int           RPM_LED_Pos;
 
 // Position on display
@@ -252,12 +254,12 @@ void setup()
 
     // =======================================================
     // Calculate this constant up front to avoid
-    // doing divides every loop
+    // doing so many divides every loop
     RPM_constant = 120000000 / (float)cylinders * Kludge_Factor;
-
+    //based on:
     //freq = 1000000.0 / (float)period;
-    //RPM = round(freq / (float)cylinders * 120.0);
-    //RPM = round(1000000.0 / (float)period / (float)cylinders * 120.0)
+    //RPM = freq / (float)cylinders * 120.0;
+    //RPM = 1000000.0 / (float)period / (float)cylinders * 120.0
     // =======================================================
 
     // =======================================================
@@ -361,11 +363,12 @@ void loop()
         hightime = pulseIn(RPM_Input_Pin, HIGH, pulsein_timeout);
         lowtime  = pulseIn(RPM_Input_Pin, LOW, pulsein_timeout);
         period   = hightime + lowtime;
+        //period = random(period_min, pulsein_timeout);
 
         // prevent overflows or divide by zero
         if (period > period_min)
             {
-            RPM = round(RPM_constant / (float)period);
+            RPM = int(RPM_constant / (float)period);
             }
         else
             {
@@ -375,8 +378,8 @@ void loop()
     else
         {
         // Demo mode, invent values
-        RPM = random(600, 8200);
-        //RPM = 2000;
+        RPM = random(minimum_RPM, maximum_RPM);
+        //RPM = 6123;
         }
 
     RPM      = constrain(RPM, 0, maximum_RPM);
@@ -412,13 +415,14 @@ void loop()
     // =======================================================
 
     // Round RPM to nearest 100's or 10's
-    if (RPM > RPM_redline / 2)
+    RPM_f = (float)RPM;
+    if (RPM >= low_RPM)
         {
-        RPM = round((RPM + 50) / 100) * 100;
+        RPM = int((RPM_f + 50.0) * 0.01) * 100;
         }
     else
         {
-        RPM = round((RPM + 5) / 10) * 10;
+        RPM = int((RPM_f + 5.0) * 0.1) * 10;
         }
 
     myGLCD.setFont(font7L);
