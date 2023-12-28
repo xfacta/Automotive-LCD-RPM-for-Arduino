@@ -8,7 +8,7 @@
 
 
 // Just in case you are not using the Arduino IDE
-#include <arduino.h>
+//#include <arduino.h>
 
 
 /*
@@ -31,7 +31,7 @@
 
 
 
-#define Version "RPM Bar V18"
+#define Version "RPM Bar V19"
 
 
 
@@ -39,10 +39,10 @@
 //-------------------------- Set These Manually --------------------------
 //========================================================================
 
-int RPM_redline    = 8000;
-int RPM_yellowline = 6000;
-int cylinders      = 4;
-int minimum_RPM    = 500;
+int RPM_redline   = 8000;
+int RPMyellowline = 6000;
+int cylinders     = 4;
+int minimum_RPM   = 500;
 
 // Set whether digitial inputs are active low or active high
 // example: active low = pulled to ground for a valid button press
@@ -74,7 +74,7 @@ int LED_Count = 8;
 // Removed calibration mode, it shouldnt be needed
 
 // Demo = true gives random RPM values
-bool Demo_Mode = false;
+bool Demo_Mode = true;
 
 //========================================================================
 
@@ -85,8 +85,6 @@ bool Demo_Mode = false;
 #include <UTFT.h>
 // needed for drawing triangles
 #include <UTFT_Geometry.h>
-// orange is missing from the default range
-#define VGA_ORANGE 0xFD20 /* 255, 165,   0 */
 
 UTFT          myGLCD(ILI9481, 38, 39, 40, 41);
 UTFT_Geometry geo(&myGLCD);
@@ -98,6 +96,29 @@ UTFT_Geometry geo(&myGLCD);
   LCD_Write_DATA(0x8A); <- was
   Possible values: 0x8A 0x4A 0x2A 0x1A
 */
+
+/*
+Available colours
+  VGA_BLACK	
+  VGA_WHITE	
+  VGA_RED
+  VGA_GREEN	
+  VGA_BLUE	
+  VGA_SILVER	
+  VGA_GRAY	
+  VGA_MAROON	
+  VGA_YELLOW	
+  VGA_OLIVE	
+  VGA_LIME	
+  VGA_AQUA	
+  VGA_TEAL	
+  VGA_NAVY	
+  VGA_FUCHSIA
+  VGA_PURPLE	
+  VGA_TRANSPARENT
+*/
+// orange is missing from the default range
+#define VGA_ORANGE 0xFD20 /* 255, 165,   0 */
 
 // Declare which fonts we will be using
 //extern uint8_t SmallFont[];
@@ -129,7 +150,7 @@ bool dim_mode          = false;
 int  text_colour1      = VGA_WHITE;     // or VGA_SILVER
 int  text_colour2      = VGA_SILVER;    // or VGA_GRAY
 int  block_fill_colour = VGA_GRAY;      // or VGA_BLACK
-int  startup_time      = 8000;          // 8 seconds
+int  startup_time      = 10000;         // 10 seconds
 
 
 // Voltage calculations
@@ -182,25 +203,32 @@ const int OP_Warning_Pin = 12;    // Link to external Leonardo for oil pressure 
 const int Relay_Pin      = 13;    // Relay for fan control
 
 // RPM variables
-int           RPM, peak_RPM, last_RPM;
+int           RPM, peakRPM, lastRPM, demoRPM;
 unsigned long hightime, lowtime, pulsein_timeout, period_min;
 float         freq, period, RPM_f, RPM_constant;
-int           maximum_RPM = RPM_redline * 1.2;
-int           low_RPM     = RPM_redline / 3;
+int           maximumRPM = RPM_redline * 1.2;
+int           lowRPM     = RPM_redline / 3;
 int           RPM_LED_Pos;
+int           spinnerState = 1;
 
 // Position on display
-int RPM_x = 50, RPM_y = 75;
-int peak_RPM_x = 180, peak_RPM_y = 240;
+//getDisplayXSize
+//getDisplayYSize
+const int RPMx      = 480 / 2 - 195;    // horizontal or long side
+const int RPMy      = 320 / 2 - 50;     // vertical or short side
+const int peakRPMx  = 480 / 2 - 65;
+const int peakRPMy  = 320 - 50;
+const int spinner_x = 10;
+const int spinner_y = 320 - 40;
 
 // Meter variables
-int       blocks, new_val, num_segs, seg_size, x1, x2, block_colour;
-int       linearBarX = 480 - 15, linearBarY = 10;    // bar starting position in pixels
-const int barLength = 450;                           // length and width in pixels
-const int barWidth  = 50;
-const int seg_value = 250;                         // 250 RPM segments
-const int seg_gap   = 2;                           // gap between segments in pixels
-const int meterMin = 0, meterMax = maximum_RPM;    // bar scale
+const int barMargin = 10;
+const int barLength = 480 - (2 * barMargin);      // horizontal or long side
+const int barWidth  = 320 / 5;                    // vertical or short side
+const int meterMin = 0, meterMax = maximumRPM;    // bar scale
+int       blankBarValue, colouredBarValue, block_colour;
+int       linearBarX = barMargin;
+int       linearBarY = barMargin;    // bar starting position in pixels
 
 
 
@@ -248,8 +276,8 @@ void setup()
     // Calculate the minimum period in microseconds
     // values beyond this would be considered noise or an error
     // this helps to prevent divide by zero errors
-    // based on cylinders and maximum_RPM, and halve it
-    period_min = 1000000.0 / ((float)maximum_RPM * (float)cylinders / 120.0) / 2.0;
+    // based on cylinders and maximumRPM, and halve it
+    period_min = 1000000.0 / ((float)maximumRPM * (float)cylinders / 120.0) / 2.0;
     // =======================================================
 
     // =======================================================
@@ -260,14 +288,6 @@ void setup()
     //freq = 1000000.0 / (float)period;
     //RPM = freq / (float)cylinders * 120.0;
     //RPM = 1000000.0 / (float)period / (float)cylinders * 120.0
-    // =======================================================
-
-    // =======================================================
-    // set some more values for the bar graph
-    // these only need to be calculated once
-    num_segs   = int(0.5 + (float)(meterMax - meterMin) / (float)seg_value);    // calculate number of segments
-    seg_size   = int(0.5 + (float)barLength / (float)num_segs);                 // calculate segment width in pixels
-    linearBarX = linearBarX - (barLength - num_segs * seg_size) / 2;            // centre the bar to allow for rounding errors
     // =======================================================
 
     // Display important startup items
@@ -281,22 +301,38 @@ void setup()
 
     // Clear the screen and display static items
     myGLCD.clrScr();
-    myGLCD.print((char *)"RPM", peak_RPM_x + 180, peak_RPM_y);
+    myGLCD.setColor(VGA_GRAY);
+    myGLCD.setBackColor(VGA_BLACK);
+    myGLCD.setFont(font1);
+    myGLCD.print((char *)"RPM", peakRPMx + 180, peakRPMy + 10);
 
     // =======================================================
     // Draw triangles at predetermined points
-    int S1 = linearBarX - int((float)barLength / ((float)meterMax / (float)RPM_yellowline));    // Yellowline mark
-    int S2 = linearBarX - int((float)barLength / ((float)meterMax / (float)RPM_redline));       // Redline mark
+    // Bar goes from right to left, so these are in from the left
+    int S1 = linearBarX + barLength - int((float)RPMyellowline / (float)maximumRPM * (float)barLength);    // Yellowline mark
+    int S2 = linearBarX + barLength - int((float)RPM_redline / (float)maximumRPM * (float)barLength);      // Redline mark
+    myGLCD.setColor(VGA_YELLOW);
+    geo.fillTriangle(S1 - 4, linearBarY + barWidth + 10, S1 + 4, linearBarY + barWidth + 10, S1, linearBarY + barWidth + 5);
     myGLCD.setColor(VGA_RED);
-    geo.fillTriangle(S1 - 4, linearBarY + barWidth + 8, S1 + 4, linearBarY + barWidth + 8, S1, linearBarY + barWidth + 2);
-    geo.fillTriangle(S2 - 4, linearBarY + barWidth + 8, S2 + 4, linearBarY + barWidth + 8, S2, linearBarY + barWidth + 2);
+    geo.fillTriangle(S2 - 4, linearBarY + barWidth + 10, S2 + 4, linearBarY + barWidth + 10, S2, linearBarY + barWidth + 5);
     // =======================================================
+
+    // Draw the bar background
+    myGLCD.setColor(block_fill_colour);
+    myGLCD.fillRect(linearBarX, linearBarY, linearBarX + barLength, linearBarY + barWidth);
 
     // Display the redline value in red
     myGLCD.setFont(font7L);
     myGLCD.setColor(VGA_RED);
     myGLCD.setBackColor(VGA_BLACK);
-    myGLCD.printNumI(RPM_redline, RPM_x, RPM_y, 4, '0');
+    myGLCD.printNumI(RPM_redline, RPMx, RPMy, 4, '0');
+
+    // Display the peak RPM value
+    myGLCD.setFont(font7F);
+    myGLCD.setColor(text_colour2);
+    myGLCD.setBackColor(VGA_BLACK);
+    myGLCD.printNumI(peakRPM, peakRPMx, peakRPMy, 4, ' ');
+
     delay(1000);
 
 
@@ -323,7 +359,7 @@ void loop()
         // this assumes some electronic/external debounce
         delay(10);
         if (digitalRead(Button_Pin) == Digitial_Input_Active)
-            peak_RPM = 0;
+            peakRPM = 0;
         }
 
 
@@ -363,12 +399,66 @@ void loop()
         hightime = pulseIn(RPM_Input_Pin, HIGH, pulsein_timeout);
         lowtime  = pulseIn(RPM_Input_Pin, LOW, pulsein_timeout);
         period   = hightime + lowtime;
+        // for testing
         //period = random(period_min, pulsein_timeout);
 
         // prevent overflows or divide by zero
         if (period > period_min)
             {
             RPM = int(RPM_constant / (float)period);
+            // Advance the spinner
+            myGLCD.setFont(font1);
+            myGLCD.setColor(text_colour2);
+            myGLCD.setBackColor(VGA_BLACK);
+            switch (spinnerState)
+                {
+                case 1:
+                    // "|"
+                    myGLCD.print("|", spinner_x, spinner_y);
+                    spinnerState++;
+                    break;
+                case 2:
+                    // "/"
+                    myGLCD.print("/", spinner_x, spinner_y);
+                    spinnerState++;
+                    break;
+                case 3:
+                    // "_" 95
+                    // print a space then an underscore shifted higher
+                    // a minus sign is too narrow
+                    myGLCD.print(" ", spinner_x, spinner_y);
+                    myGLCD.print("_", spinner_x, spinner_y - 10);
+                    spinnerState++;
+                    break;
+                case 4:
+                    // "\"
+                    myGLCD.print("\\", spinner_x, spinner_y);
+                    spinnerState++;
+                    break;
+                case 5:
+                    // "|"
+                    myGLCD.print("|", spinner_x, spinner_y);
+                    spinnerState++;
+                    break;
+                case 6:
+                    // "/"
+                    myGLCD.print("/", spinner_x, spinner_y);
+                    spinnerState++;
+                    break;
+                case 7:
+                    // "_" 95
+                    // print a space then an underscore shifted higher
+                    // a minus sign is too narrow
+                    myGLCD.print(" ", spinner_x, spinner_y);
+                    myGLCD.print("_", spinner_x, spinner_y - 10);
+                    spinnerState++;
+                    break;
+                case 8:
+                    // "\"
+                    myGLCD.print("\\", spinner_x, spinner_y);
+                    spinnerState = 1;
+                    break;
+                }
             }
         else
             {
@@ -378,19 +468,24 @@ void loop()
     else
         {
         // Demo mode, invent values
-        RPM = random(minimum_RPM, maximum_RPM);
-        //RPM = 6123;
+        demoRPM = demoRPM + random(-500, 1500);
+        if (demoRPM >= maximumRPM)
+            {
+            demoRPM = 0;
+            peakRPM = RPMyellowline / 2;
+            }
+        RPM = demoRPM;
+        //RPM = 8000;
         }
 
-    RPM      = constrain(RPM, 0, maximum_RPM);
-    last_RPM = RPM;
+    RPM = constrain(RPM, 0, maximumRPM);
 
 
     // =======================================================
     // Output the RPM as a PWM signal for another Arduino
     // =======================================================
 
-    RPM_LED_Pos = map(RPM, RPM_yellowline, RPM_redline, 0, LED_Count);
+    RPM_LED_Pos = map(RPM, RPMyellowline, RPM_redline, 0, LED_Count);
     RPM_LED_Pos = constrain(RPM_LED_Pos, 0, LED_Count);
     Serial2.write(RPM_LED_Pos);
 
@@ -400,14 +495,14 @@ void loop()
     // =======================================================
 
     // Do this before we round the RPM to 10's or 100's
-    if (RPM > peak_RPM)
+    if (RPM > peakRPM && RPM > RPMyellowline / 2)
         {
-        peak_RPM = RPM;
+        peakRPM = RPM;
+        myGLCD.setFont(font7F);
+        myGLCD.setColor(text_colour2);
+        myGLCD.setBackColor(VGA_BLACK);
+        myGLCD.printNumI(peakRPM, peakRPMx, peakRPMy, 4, ' ');
         }
-    myGLCD.setFont(font7F);
-    myGLCD.setColor(text_colour2);
-    myGLCD.setBackColor(VGA_BLACK);
-    myGLCD.printNumI(peak_RPM, peak_RPM_x, peak_RPM_y, 4, ' ');
 
 
     // =======================================================
@@ -416,7 +511,7 @@ void loop()
 
     // Round RPM to nearest 100's or 10's
     RPM_f = (float)RPM;
-    if (RPM >= low_RPM)
+    if (RPM >= lowRPM)
         {
         RPM = int((RPM_f + 50.0) * 0.01) * 100;
         }
@@ -432,16 +527,16 @@ void loop()
         // Print a black digit 8 where a rogue digit would be
         // because this large font only has digits, no space char
         myGLCD.setColor(VGA_BLACK);
-        myGLCD.printNumI(8, RPM_x, RPM_y, 1, '0');
+        myGLCD.printNumI(8, RPMx, RPMy, 1, '0');
         // Print the 3 digit RPM
         myGLCD.setColor(text_colour1);
-        myGLCD.printNumI(RPM, RPM_x + 96, RPM_y, 3, '0');
+        myGLCD.printNumI(RPM, RPMx + 96, RPMy, 3, '0');
         }
     else
         {
         // Print the 4 digit RPM
         myGLCD.setColor(text_colour1);
-        myGLCD.printNumI(RPM, RPM_x, RPM_y, 4, '0');
+        myGLCD.printNumI(RPM, RPMx, RPMy, 4, '0');
         }
 
 
@@ -449,49 +544,45 @@ void loop()
     // Draw the barmeter
     // =======================================================
 
-    int new_val = map(RPM, meterMin, meterMax, 0, num_segs);
+    colouredBarValue = barLength - map(RPM, meterMin, meterMax, 0, barLength);
 
-    // Draw colour blocks for the segents
-    for (blocks = 0; blocks < num_segs; blocks++)
+    if (!dim_mode)
         {
-        // Calculate pair of coordinates for segment start and end
-        x1 = linearBarX - (blocks * seg_size);                    // starting X coord
-        x2 = linearBarX - ((blocks + 1) * seg_size) + seg_gap;    // ending X coord allowing for gap
-
-        if (new_val > 0 && blocks < new_val)
-            {
-            if (!dim_mode)
-                {
-                // All colours available fir bright mode
-                // Choose colour scheme using the Rainbow function
-                // uncomment one line
-                //block_colour = VGA_RED;    // Fixed colour
-                //block_colour = VGA_GREEN;  // Fixed colour
-                //block_colour = VGA_NAVY;   // Fixed colour
-                //block_colour = rainbow(map(blocks, 0, num_segs, 0, 127));   // Blue to red
-                block_colour = rainbow(map(blocks, 0, num_segs, 63, 127));    // Green to red
-                //block_colour = rainbow(map(blocks, 0, num_segs, 127, 63));  // Red to green
-                //block_colour = rainbow(map(blocks, 0, num_segs, 127, 0));   // Red to blue
-                }
-            else
-                {
-                // Dim mode, headlingts on
-                block_colour = text_colour2;
-                }
-
-            // Fill in coloured blocks
-            // This is the foreground colour of the bar graph
-            myGLCD.setColor(block_colour);
-            myGLCD.fillRect(x1, linearBarY, x2, linearBarY + barWidth);
-            }
-        // Fill in blank segments
-        // This is the background colour of the bar graph
-        else
-            {
-            myGLCD.setColor(block_fill_colour);
-            myGLCD.fillRect(x1, linearBarY, x2, linearBarY + barWidth);
-            }
+        // All colours available fir bright mode
+        // Choose colour scheme using the Rainbow function
+        // uncomment one line
+        //block_colour = TFT_RED;    // Fixed colour
+        //block_colour = TFT_GREEN;  // Fixed colour
+        //block_colour = TFT_NAVY;   // Fixed colour
+        //block_colour = rainbow(map(RPM, meterMin, meterMax, 0, 127));    // Blue to red
+        block_colour = rainbow(map(RPM, meterMin, meterMax, 63, 127));    // Green to red
+        //block_colour = rainbow(map(RPM, meterMin, meterMax, 127, 63));  // Red to green
+        //block_colour = rainbow(map(RPM, meterMin, meterMax, 127, 0));   // Red to blue
         }
+    else
+        {
+        // Dim mode, headlingts on
+        block_colour = text_colour2;
+        }
+
+    // The bar goes from right to left
+
+    // Fill in blank segments
+    // This is the background colour of the bar graph
+    if (RPM < lastRPM)
+        {
+        myGLCD.setColor(block_fill_colour);
+        myGLCD.fillRect(linearBarX, linearBarY, linearBarX + colouredBarValue, linearBarY + barWidth);
+        }
+
+    // Fill in coloured blocks
+    // This is the foreground colour of the bar graph
+    // X, Y, Width(X axis), Height(Y axis), Colour
+    myGLCD.setColor(block_colour);
+    myGLCD.fillRect(linearBarX + colouredBarValue, linearBarY, linearBarX + barLength, linearBarY + barWidth);
+
+    lastRPM = RPM;
+
 
 
     }    // End void loop
