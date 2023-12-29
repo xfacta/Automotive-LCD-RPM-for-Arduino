@@ -293,18 +293,18 @@ void setup()
     // Display important startup items
     myGLCD.InitLCD(LANDSCAPE);
     myGLCD.clrScr();
+    myGLCD.setFont(font0);
     myGLCD.setColor(VGA_GRAY);
     myGLCD.setBackColor(VGA_BLACK);
-    myGLCD.setFont(font0);
-    myGLCD.print((char *)Version, CENTER, CENTER);
+    myGLCD.print(Version, CENTER, CENTER);
     delay(2000);
 
     // Clear the screen and display static items
     myGLCD.clrScr();
+    myGLCD.setFont(font1);
     myGLCD.setColor(VGA_GRAY);
     myGLCD.setBackColor(VGA_BLACK);
-    myGLCD.setFont(font1);
-    myGLCD.print((char *)"RPM", peakRPMx + 180, peakRPMy + 10);
+    myGLCD.print("RPM", peakRPMx + 180, peakRPMy + 10);
 
     // =======================================================
     // Draw triangles at predetermined points
@@ -432,6 +432,8 @@ void loop()
                     break;
                 case 4:
                     // "\"
+                    // need to "eascape" this character for it to print
+                    // and not interfere with the compiler
                     myGLCD.print("\\", spinner_x, spinner_y);
                     spinnerState++;
                     break;
@@ -455,6 +457,8 @@ void loop()
                     break;
                 case 8:
                     // "\"
+                    // need to "eascape" this character for it to print
+                    // and not interfere with the compiler
                     myGLCD.print("\\", spinner_x, spinner_y);
                     spinnerState = 1;
                     break;
