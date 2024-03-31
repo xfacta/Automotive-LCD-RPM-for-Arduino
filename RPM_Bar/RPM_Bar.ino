@@ -56,9 +56,9 @@ const bool Valid_Warning = LOW;
 float Kludge_Factor = 0.994;
 
 // Set these to ensure correct voltage readings of analog inputs
-const float vcc_ref = 4.92;      // measure the 5 volts DC and set it here
-const float R1      = 1200.0;    // measure and set the voltage divider values
-const float R2      = 3300.0;    // for accurate voltage measurements
+const float vcc_ref = 4.92;       // measure the 5 volts DC and set it here
+const float R1      = 15000.0;    // measure and set the voltage divider values
+const float R2      = 33000.0;    // for accurate voltage measurements
 
 // The range of RPM on the neopixel strip is dictated by the output from the RPM module
 // set the length of the NeoPixel shiftlight strip
@@ -74,7 +74,7 @@ int LED_Count = 8;
 // Removed calibration mode, it shouldnt be needed
 
 // Demo = true gives random RPM values
-bool Demo_Mode = true;
+bool Demo_Mode = false;
 
 //========================================================================
 
@@ -399,6 +399,14 @@ void loop()
         hightime = pulseIn(RPM_Input_Pin, HIGH, pulsein_timeout);
         lowtime  = pulseIn(RPM_Input_Pin, LOW, pulsein_timeout);
         period   = hightime + lowtime;
+        /*
+        // Take a second set of readings
+        hightime = pulseIn(VSS_Input_Pin, HIGH, pulsein_timeout);
+        lowtime  = pulseIn(VSS_Input_Pin, LOW, pulsein_timeout);
+        period   = period + hightime + lowtime;
+        // Average the period
+        period   = period / 2.0;
+        */
         // for testing
         //period = random(period_min, pulsein_timeout);
 
