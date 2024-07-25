@@ -20,6 +20,7 @@
   Outputs RPM via serial2 for shift light
   Uses pulseIn , no interupts
   Offloaded sounds to external Leonardo Tiny
+  Added proper switch debouncing
 */
 
 
@@ -189,6 +190,11 @@ const int VSS_Input_Pin    = 5;    // Speed frequency input pin
 const int RPM_Input_Pin    = 6;    // RPM frequency INPUT pin
 const int Button_Pin       = 7;    // Button momentary input
 
+// Used in the debounce routine
+int switch_pin;
+int debounce_test;
+int debounce_result;
+
 // Pin definitions for analog inputs
 const int Temp_Pin       = A0;    // Temperature analog input pin - OneWire sensor on pin 14
 const int Fuel_Pin       = A1;    // Fuel level analog input pin
@@ -237,7 +243,7 @@ int       linearBarY = barMargin;    // bar starting position in pixels
 
 
 void setup()
-    {
+{
 
     // Start a serial port for sending RPM LED shift light position
     // Serial2 17(RX), 16(TX)
@@ -264,6 +270,20 @@ void setup()
 
     // Analog inputs
     // none
+
+    // Assign the switch debounce polarity
+    // for low active 0xfe00  and 0xff00
+    // for high active 0x01ff and 0x00ff
+    if (Digitial_Input_Active == HIGH)
+    {
+        debounce_test   = 0x01ff;
+        debounce_result = 0x00ff;
+    }
+    else
+    {
+        debounce_test   = 0xfe00;
+        debounce_result = 0xff00;
+    }
 
     // =======================================================
     // Maximum time for pulseIn to wait in microseconds
@@ -336,7 +356,7 @@ void setup()
     delay(1000);
 
 
-    }    // End void setup
+}    // End void setup
 
 
 
@@ -346,21 +366,18 @@ void setup()
 
 
 void loop()
-    {
+{
 
 
     // =======================================================
     // Reset peak RPM by button press
     // =======================================================
 
-    if (digitalRead(Button_Pin) == Digitial_Input_Active)
-        {
-        // Allow time for the button pin to settle
-        // this assumes some electronic/external debounce
-        delay(10);
-        if (digitalRead(Button_Pin) == Digitial_Input_Active)
+    if (debounce(Button_Pin) == Digitial_Input_Active)
+    {
+        if (debounce(Button_Pin) == Digitial_Input_Active)
             peakRPM = 0;
-        }
+    }
 
 
     // =======================================================
@@ -368,25 +385,25 @@ void loop()
     // =======================================================
 
     if (millis() > startup_time)
-        {
+    {
         // Dim mode when headlights are on
-        if (digitalRead(Low_Beam_Pin) == Digitial_Input_Active && !dim_mode)
-            {
+        if (debounce(Low_Beam_Pin) == Digitial_Input_Active && !dim_mode)
+        {
             dim_mode          = true;
             text_colour1      = VGA_SILVER;
             text_colour2      = VGA_GRAY;
             block_fill_colour = VGA_BLACK;
-            }
+        }
 
         // Normal colours when headlights are off
-        if (digitalRead(Low_Beam_Pin) == !Digitial_Input_Active && dim_mode)
-            {
+        if (debounce(Low_Beam_Pin) == !Digitial_Input_Active && dim_mode)
+        {
             dim_mode          = false;
             text_colour1      = VGA_WHITE;
             text_colour2      = VGA_SILVER;
             block_fill_colour = VGA_GRAY;
-            }
         }
+    }
 
 
     // =======================================================
@@ -394,7 +411,7 @@ void loop()
     // =======================================================
 
     if (!Demo_Mode)
-        {
+    {
         // Read the real RPM input
         hightime = pulseIn(RPM_Input_Pin, HIGH, pulsein_timeout);
         lowtime  = pulseIn(RPM_Input_Pin, LOW, pulsein_timeout);
@@ -412,14 +429,14 @@ void loop()
 
         // prevent overflows or divide by zero
         if (period > period_min)
-            {
+        {
             RPM = int(RPM_constant / (float)period);
             // Advance the spinner
             myGLCD.setFont(font1);
             myGLCD.setColor(text_colour2);
             myGLCD.setBackColor(VGA_BLACK);
             switch (spinnerState)
-                {
+            {
                 case 1:
                     // "|"
                     myGLCD.print("|", spinner_x, spinner_y);
@@ -470,25 +487,25 @@ void loop()
                     myGLCD.print("\\", spinner_x, spinner_y);
                     spinnerState = 1;
                     break;
-                }
-            }
-        else
-            {
-            RPM = 0;
             }
         }
-    else
+        else
         {
+            RPM = 0;
+        }
+    }
+    else
+    {
         // Demo mode, invent values
         demoRPM = demoRPM + random(-500, 1500);
         if (demoRPM >= maximumRPM)
-            {
+        {
             demoRPM = 0;
             peakRPM = RPMyellowline / 2;
-            }
+        }
         RPM = demoRPM;
         //RPM = 8000;
-        }
+    }
 
     RPM = constrain(RPM, 0, maximumRPM);
 
@@ -508,13 +525,13 @@ void loop()
 
     // Do this before we round the RPM to 10's or 100's
     if (RPM > peakRPM && RPM > RPMyellowline / 2)
-        {
+    {
         peakRPM = RPM;
         myGLCD.setFont(font7F);
         myGLCD.setColor(text_colour2);
         myGLCD.setBackColor(VGA_BLACK);
         myGLCD.printNumI(peakRPM, peakRPMx, peakRPMy, 4, ' ');
-        }
+    }
 
 
     // =======================================================
@@ -524,18 +541,18 @@ void loop()
     // Round RPM to nearest 100's or 10's
     RPM_f = (float)RPM;
     if (RPM >= lowRPM)
-        {
+    {
         RPM = int((RPM_f + 50.0) * 0.01) * 100;
-        }
+    }
     else
-        {
+    {
         RPM = int((RPM_f + 5.0) * 0.1) * 10;
-        }
+    }
 
     myGLCD.setFont(font7L);
     myGLCD.setBackColor(VGA_BLACK);
     if (RPM <= 999)
-        {
+    {
         // Print a black digit 8 where a rogue digit would be
         // because this large font only has digits, no space char
         myGLCD.setColor(VGA_BLACK);
@@ -543,13 +560,13 @@ void loop()
         // Print the 3 digit RPM
         myGLCD.setColor(text_colour1);
         myGLCD.printNumI(RPM, RPMx + 96, RPMy, 3, '0');
-        }
+    }
     else
-        {
+    {
         // Print the 4 digit RPM
         myGLCD.setColor(text_colour1);
         myGLCD.printNumI(RPM, RPMx, RPMy, 4, '0');
-        }
+    }
 
 
     // =======================================================
@@ -559,7 +576,7 @@ void loop()
     colouredBarValue = barLength - map(RPM, meterMin, meterMax, 0, barLength);
 
     if (!dim_mode)
-        {
+    {
         // All colours available fir bright mode
         // Choose colour scheme using the Rainbow function
         // uncomment one line
@@ -570,22 +587,22 @@ void loop()
         block_colour = rainbow(map(RPM, meterMin, meterMax, 63, 127));    // Green to red
         //block_colour = rainbow(map(RPM, meterMin, meterMax, 127, 63));  // Red to green
         //block_colour = rainbow(map(RPM, meterMin, meterMax, 127, 0));   // Red to blue
-        }
+    }
     else
-        {
+    {
         // Dim mode, headlingts on
         block_colour = text_colour2;
-        }
+    }
 
     // The bar goes from right to left
 
     // Fill in blank segments
     // This is the background colour of the bar graph
     if (RPM < lastRPM)
-        {
+    {
         myGLCD.setColor(block_fill_colour);
         myGLCD.fillRect(linearBarX, linearBarY, linearBarX + colouredBarValue, linearBarY + barWidth);
-        }
+    }
 
     // Fill in coloured blocks
     // This is the foreground colour of the bar graph
@@ -597,7 +614,7 @@ void loop()
 
 
 
-    }    // End void loop
+}    // End void loop
 
 
 
@@ -613,10 +630,21 @@ void loop()
 
 // =======================================================
 
+
+bool debounce(int switch_pin)
+{
+    static uint16_t state = 0;
+    state                 = (state << 1) | digitalRead(switch_pin) | debounce_test;
+    return (state == debounce_result);
+}
+
+
+// =======================================================
+
 // Function to return a 16 bit rainbow colour
 
 unsigned int rainbow(byte value)
-    {
+{
     // Value is expected to be in range 0-127
     // The value is converted to a spectrum colour from 0 = blue through to 127 = red
 
@@ -627,31 +655,31 @@ unsigned int rainbow(byte value)
     byte quadrant = value / 32;
 
     if (quadrant == 0)
-        {
+    {
         blue  = 31;
         green = 2 * (value % 32);
         red   = 0;
-        }
+    }
     if (quadrant == 1)
-        {
+    {
         blue  = 31 - (value % 32);
         green = 63;
         red   = 0;
-        }
+    }
     if (quadrant == 2)
-        {
+    {
         blue  = 0;
         green = 63;
         red   = value % 32;
-        }
+    }
     if (quadrant == 3)
-        {
+    {
         blue  = 0;
         green = 63 - 2 * (value % 32);
         red   = 31;
-        }
-    return (red << 11) + (green << 5) + blue;
     }
+    return (red << 11) + (green << 5) + blue;
+}
 
 // =======================================================
 
