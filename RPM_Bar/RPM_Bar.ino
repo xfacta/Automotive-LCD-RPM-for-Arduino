@@ -59,7 +59,7 @@ float Kludge_Factor = 0.994;
 // Set these to ensure correct voltage readings of analog inputs
 const float vcc_ref = 4.92;       // measure the 5 volts DC and set it here
 const float R1      = 15000.0;    // measure and set the voltage divider values
-const float R2      = 33000.0;    // for accurate voltage measurements
+const float R2      = 39000.0;    // for accurate voltage measurements
 
 // The range of RPM on the neopixel strip is dictated by the output from the RPM module
 // set the length of the NeoPixel shiftlight strip
@@ -181,19 +181,15 @@ const int SD_Select = 53;
 
 // Pin definitions for digital inputs
 // Mega2560 Serial2 pins 17(RX), 16(TX)
-const int Oil_Press_Pin    = 0;    // Oil pressure digital input pin
-const int Parker_Light_Pin = 1;    // Parker lights digital input pin
-const int Low_Beam_Pin     = 2;    // Low beam digital input pin
-const int High_Beam_Pin    = 3;    // High beam digital input pin
-const int Pbrake_Input_Pin = 4;    // Park brake input pin
-const int VSS_Input_Pin    = 5;    // Speed frequency input pin
-const int RPM_Input_Pin    = 6;    // RPM frequency INPUT pin
-const int Button_Pin       = 7;    // Button momentary input
+const int Button_Pin       = 0;    // Button momentary input
+const int Pbrake_Input_Pin = 1;    // Park brake input pin
+const int Oil_Press_Pin    = 2;    // Oil pressure digital input pin, needs to be 2 or 3 for ISR
+const int Parker_Light_Pin = 3;    // Parker lights digital input pin
+const int Low_Beam_Pin     = 4;    // Low beam digital input pin
+const int High_Beam_Pin    = 5;    // High beam digital input pin
+const int VSS_Input_Pin    = 6;    // Speed frequency input pin
+const int RPM_Input_Pin    = 7;    // RPM frequency INPUT pin
 
-// Used in the debounce routine
-int switch_pin;
-int debounce_test;
-int debounce_result;
 
 // Pin definitions for analog inputs
 const int Temp_Pin       = A0;    // Temperature analog input pin - OneWire sensor on pin 14
@@ -628,18 +624,6 @@ void loop()
 // =======================================================
 
 
-// =======================================================
-
-
-bool debounce(int switch_pin)
-{
-    static uint16_t state = 0;
-    state                 = (state << 1) | digitalRead(switch_pin) | debounce_test;
-    return (state == debounce_result);
-}
-
-
-// =======================================================
 
 // Function to return a 16 bit rainbow colour
 
